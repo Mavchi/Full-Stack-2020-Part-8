@@ -117,54 +117,72 @@ const typeDefs = gql`
 			published: Int!
 			genres: [String!]!
 		): Book
+		editAuthor(
+			name: String!
+			setBornTo: Int!
+		): Author
 	}
 `;
 
 const resolvers = {
   Query: {
-		bookCount: () => books.length,
-		authorCount: () => authors.length,
-		allBooks: (root, args) => {
-			let filtered = [...books]
-			if (args.author) {
-				filtered = filtered.filter((b) => b.author === args.author);
-			}
-			if (args.genre) {
-				filtered = filtered.filter((b) => b.genres.includes(args.genre))
-			}
+    bookCount: () => books.length,
+    authorCount: () => authors.length,
+    allBooks: (root, args) => {
+      let filtered = [...books];
+      if (args.author) {
+        filtered = filtered.filter((b) => b.author === args.author);
+      }
+      if (args.genre) {
+        filtered = filtered.filter((b) => b.genres.includes(args.genre));
+      }
 
-			return filtered;
-		},
-		allAuthors: () => authors,
-	},
-	Author: {
-		bookCount: (root) => books.filter(b => b.author === root.name).length
-	},
-	Mutation: {
-		addBook: (root,args) => {
-			const newBook = {...args, id: uuid()}
+      return filtered;
+    },
+    allAuthors: () => authors,
+  },
+  Author: {
+    bookCount: (root) => books.filter((b) => b.author === root.name).length,
+  },
+  Mutation: {
+    addBook: (root, args) => {
+      const newBook = { ...args, id: uuid() };
 
-			// check if author is new
-			let author = authors.find(a => a.name === newBook.author)
-			if (!author) {
-				author = {
-					name: args.author,
-					id: uuid(),
-				}
-				authors = authors.concat(author)
-			}
+      // check if author is new
+      let author = authors.find((a) => a.name === newBook.author);
+      if (!author) {
+        author = {
+          name: args.author,
+          id: uuid(),
+        };
+        authors = authors.concat(author);
+      }
 
-			// throw error, if book already not in library
-			if (books.find(b => b.title === args.title)) {
-				throw new UserInputError('Book must be unique', {
-					invalidArgs: args.name,
-				})
-			}
+      // throw error, if book already not in library
+      if (books.find((b) => b.title === args.title)) {
+        throw new UserInputError('Book must be unique', {
+          invalidArgs: args.name,
+        });
+      }
 
-			books = books.concat(newBook)
-			return newBook
-		},
-	}
+      books = books.concat(newBook);
+      return newBook;
+    },
+    editAuthor: (root, args) => {
+      const author = authors.find((a) => a.name === args.name);
+
+      // couldnt find author
+      if (!author) {
+        throw new UserInputError('Couldnt find author', {
+          invalidArgs: args.name,
+        });
+      }
+
+      // update author
+      author.born = args.setBornTo;
+      return author;
+    },
+  },
 };
 
 const server = new ApolloServer({
